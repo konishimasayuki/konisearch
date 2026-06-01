@@ -217,6 +217,10 @@ function PersonSearch() {
     setActiveTab("social"); setError(null);
   };
 
+  const backToCandidates = () => {
+    setPhase("candidates"); setSelectedCandidate(null); setActiveTab("social");
+  };
+
   const filteredCandidates = result?.candidates
     ? (age ? result.candidates.filter(c => !c.age || Math.abs(c.age - age) <= 15) : result.candidates)
     : [];
@@ -273,7 +277,7 @@ function PersonSearch() {
       <div>
         <ResultHeader icon="人" label="個人" name={selectedCandidate.name}
           sub={`${selectedCandidate.pref} › ${selectedCandidate.city}${selectedCandidate.age ? `　${selectedCandidate.age}歳` : ""}`}
-          score={selectedCandidate.score} onBack={reset} />
+          score={selectedCandidate.score} onBack={backToCandidates} />
         <TabBar tabs={resultTabs} active={activeTab} onChange={setActiveTab} />
 
         {/* SNS */}
