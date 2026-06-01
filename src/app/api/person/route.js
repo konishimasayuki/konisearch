@@ -16,6 +16,7 @@ function parseAddress(addr) {
 function classifyUrl(url, title, snippet) {
   const text = (title + " " + snippet).toLowerCase();
   if (url.includes("facebook.com") || url.includes("twitter.com") || url.includes("x.com") || url.includes("instagram.com") || url.includes("linkedin.com")) return "SNS";
+  if (url.includes("bakusai.com")) return "爆サイ";
   if (url.includes(".lg.jp") || url.includes("go.jp") || text.includes("役員") || text.includes("名簿")) return "公的文書";
   if (url.includes("nikkei") || url.includes("asahi") || url.includes("yomiuri") || url.includes("news")) return "メディア";
   if (text.includes("pta") || text.includes("自治会") || text.includes("まちづくり")) return "地域活動";
@@ -75,6 +76,12 @@ export async function POST(request) {
       `site:linkedin.com "${name}" ${pref}`,
     ];
 
+    // 爆サイ検索クエリ
+    const bakusaiQueries = [
+      pref ? `site:bakusai.com "${name}" ${pref}` : `site:bakusai.com "${name}"`,
+      phone ? `site:bakusai.com "${phone}"` : null,
+    ].filter(Boolean);
+
     // 並列実行
     const [webResults, ...snsResultsArr] = await Promise.all([
       serpSearch(queries[0], 10),
@@ -89,6 +96,12 @@ export async function POST(request) {
     if (queries[2]) {
       const phoneResults = await serpSearch(queries[2], 5);
       webResults.push(...phoneResults);
+    }
+
+    // 爆サイ検索
+    for (const q of bakusaiQueries) {
+      const bakusaiResults = await serpSearch(q, 5);
+      webResults.push(...bakusaiResults);
     }
 
     // Web結果整形（重複除去）
