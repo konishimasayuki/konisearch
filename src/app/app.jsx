@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 // Load fonts
 if (typeof document !== "undefined") {
@@ -152,6 +152,63 @@ function PersonSearch() {
   const age = calcAge(dob);
   const { pref, city } = parseAddress(address);
   const hasPhone = phone.trim().length > 0;
+
+  // URLパラメータから自動検索
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const pName = params.get("name");
+    const pAddress = params.get("address") || "";
+    const pPhone = params.get("phone") || "";
+    const pDob = params.get("dob") || "";
+    if (pName) {
+      setName(pName);
+      if (pAddress) setAddress(pAddress);
+      if (pPhone) setPhone(pPhone);
+      if (pDob) setDob(pDob);
+      // 少し待ってから自動検索開始
+      setTimeout(() => {
+        setPhase("loading");
+        setProgress(0);
+        setError(null);
+        let p = 0;
+        const iv = setInterval(() => {
+          p += Math.random() * 8 + 3;
+          if (p >= 90) { p = 90; clearInterval(iv); }
+          setProgress(Math.min(p, 90));
+        }, 300);
+        fetch("/api/person", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: pName, address: pAddress, phone: pPhone, dob: pDob }),
+        })
+          .then(r => r.json())
+          .then(data => {
+            setResult(data);
+            if (pPhone) {
+              fetch("/api/phone", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ phone: pPhone }),
+              }).then(r => r.json()).then(pd => setPhoneResult(pd)).catch(() => {});
+            }
+            clearInterval(iv);
+            setProgress(100);
+            const best = data.candidates?.[0];
+            setTimeout(() => {
+              if (best) { setSelectedCandidate(best); setPhase("result"); }
+              else setPhase("candidates");
+            }, 400);
+          })
+          .catch(e => {
+            clearInterval(iv);
+            setError(e.message);
+            setPhase("input");
+            setProgress(0);
+          });
+      }, 300);
+    }
+  }, []);
 
   const loadingLabels = [
     "氏名・住所照合中",
