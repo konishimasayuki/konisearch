@@ -218,7 +218,7 @@ function PersonSearch() {
   };
 
   const backToCandidates = () => {
-    setPhase("candidates"); setSelectedCandidate(null); setActiveTab("social");
+    setPhase("candidates"); setActiveTab("social");
   };
 
   const filteredCandidates = result?.candidates
