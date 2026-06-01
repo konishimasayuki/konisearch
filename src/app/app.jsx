@@ -583,8 +583,8 @@ export default function App() {
         ))}
       </div>
       <div style={{ maxWidth: "820px", margin: "0 auto", padding: "32px 20px 60px" }}>
-        {tab === "person" && <PersonSearch />}
-        {tab === "company" && <CompanySearch />}
+        <div style={{ display: tab === "person" ? "block" : "none" }}><PersonSearch /></div>
+        <div style={{ display: tab === "company" ? "block" : "none" }}><CompanySearch /></div>
         <div style={{ marginTop: "28px", padding: "14px 18px", background: "#fefce8", border: "1px solid #fde68a", borderRadius: "10px", fontSize: "12px", color: "#92400e", lineHeight: 1.7 }}>
           ⚠️ 本システムは検索者の同意を得た上での使用に限定されます。<br />
           🔄 リロードを行うと情報は削除されます。
