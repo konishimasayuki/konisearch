@@ -78,9 +78,9 @@ export async function POST(request) {
       `site:linkedin.com "${name}" ${pref}`,
     ];
 
-    // 爆サイ検索クエリ
+    // 爆サイ検索クエリ（氏名完全一致のみ）
     const bakusaiQueries = [
-      pref ? `site:bakusai.com "${name}" ${pref}` : `site:bakusai.com "${name}"`,
+      `site:bakusai.com "${name}"`,
       phone ? `site:bakusai.com "${phone}"` : null,
     ].filter(Boolean);
 
@@ -100,10 +100,15 @@ export async function POST(request) {
       webResults.push(...phoneResults);
     }
 
-    // 爆サイ検索
+    // 爆サイ検索（氏名完全一致のみ表示）
     for (const q of bakusaiQueries) {
       const bakusaiResults = await serpSearch(q, 5);
-      webResults.push(...bakusaiResults);
+      for (const r of bakusaiResults) {
+        const text = (r.title || "") + " " + (r.snippet || "");
+        // 電話番号クエリの場合はそのまま、氏名クエリは完全一致確認
+        if (q.includes(name) && !text.includes(name)) continue;
+        webResults.push(r);
+      }
     }
 
     // Web結果整形（重複除去）
@@ -138,16 +143,20 @@ export async function POST(request) {
     // ソート：爆サイ→名前+都道府県一致→名前一致→その他
     web.sort((a, b) => b.sortScore - a.sortScore);
 
-    // SNS結果整形（複数アカウント対応・重複URL除外）
+    // SNS結果整形（各プラットフォーム最大3件・重複URL除外）
     const platformNames = ["X (Twitter)", "X (Twitter)", "Facebook", "Facebook", "Instagram", "LinkedIn"];
     const social = [];
     const seenSnsUrls = new Set();
+    const platformCount = {};
     snsResultsArr.forEach((results, i) => {
+      const platform = platformNames[i];
       for (const r of results) {
         if (!r || seenSnsUrls.has(r.link)) continue;
+        if ((platformCount[platform] || 0) >= 3) continue;
         seenSnsUrls.add(r.link);
+        platformCount[platform] = (platformCount[platform] || 0) + 1;
         social.push({
-          platform: platformNames[i],
+          platform,
           handle: r.title,
           bio: r.snippet || "",
           url: r.link,
