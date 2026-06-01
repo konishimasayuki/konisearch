@@ -68,10 +68,12 @@ export async function POST(request) {
       phone ? `"${phone}"` : null,
     ].filter(Boolean);
 
-    // SNS検索クエリ
+    // SNS検索クエリ（複数アカウント対応のため多めに取得）
     const snsQueries = [
       `site:twitter.com OR site:x.com "${name}" ${pref}`,
+      `site:twitter.com OR site:x.com "${name}"`,
       `site:facebook.com "${name}" ${pref}`,
+      `site:facebook.com "${name}"`,
       `site:instagram.com "${name}"`,
       `site:linkedin.com "${name}" ${pref}`,
     ];
@@ -112,27 +114,43 @@ export async function POST(request) {
         seen.add(r.link);
         const type = classifyUrl(r.link, r.title, r.snippet || "");
         if (type !== "SNS") {
+          const text = (r.title + " " + (r.snippet || ""));
+          const exactNameMatch = text.includes(name);
+          const prefMatch = pref ? text.includes(pref) : false;
+          const isBakusai = type === "爆サイ";
+          // スコア：爆サイ=300、名前+都道府県完全一致=200、名前一致=100、都道府県一致=50
+          let sortScore = 0;
+          if (isBakusai) sortScore += 300;
+          if (exactNameMatch && prefMatch) sortScore += 200;
+          else if (exactNameMatch) sortScore += 100;
+          else if (prefMatch) sortScore += 50;
           web.push({
             title: r.title,
             snippet: r.snippet || "",
             url: r.link,
             date: r.date || null,
             type,
+            sortScore,
           });
         }
       }
     }
+    // ソート：爆サイ→名前+都道府県一致→名前一致→その他
+    web.sort((a, b) => b.sortScore - a.sortScore);
 
-    // SNS結果整形
-    const platformNames = ["X (Twitter)", "Facebook", "Instagram", "LinkedIn"];
+    // SNS結果整形（複数アカウント対応・重複URL除外）
+    const platformNames = ["X (Twitter)", "X (Twitter)", "Facebook", "Facebook", "Instagram", "LinkedIn"];
     const social = [];
+    const seenSnsUrls = new Set();
     snsResultsArr.forEach((results, i) => {
-      if (results[0]) {
+      for (const r of results) {
+        if (!r || seenSnsUrls.has(r.link)) continue;
+        seenSnsUrls.add(r.link);
         social.push({
           platform: platformNames[i],
-          handle: results[0].title,
-          bio: results[0].snippet || "",
-          url: results[0].link,
+          handle: r.title,
+          bio: r.snippet || "",
+          url: r.link,
           avatar: name.charAt(0),
         });
       }
