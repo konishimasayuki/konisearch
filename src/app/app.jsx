@@ -514,7 +514,7 @@ function PersonSearch() {
 
         {/* MAP */}
         {activeTab === "map" && (
-          <MapView address={address} name={selectedCandidate.name} city={selectedCandidate.city} pref={selectedCandidate.pref} />
+          <MapView address={address || `${selectedCandidate.pref}${selectedCandidate.city}`} name={selectedCandidate.name} city={selectedCandidate.city} pref={selectedCandidate.pref} />
         )}
       </div>
     );
