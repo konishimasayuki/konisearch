@@ -135,6 +135,83 @@ function ErrorBanner({ message }) {
   );
 }
 
+
+// ---- MAP & STREET VIEW ----
+function MapView({ address, name, city, pref }) {
+  const [mode, setMode] = useState("map"); // "map" | "street"
+  const [geocoded, setGeocoded] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY;
+
+  const fullAddress = address || `${pref}${city}`;
+
+  useEffect(() => {
+    if (!fullAddress || !MAPS_KEY) { setLoading(false); return; }
+    // Geocoding APIで住所→緯度経度
+    fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(fullAddress)}&key=${MAPS_KEY}&language=ja`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.results?.[0]?.geometry?.location) {
+          setGeocoded(data.results[0].geometry.location);
+        } else {
+          setError(true);
+        }
+        setLoading(false);
+      })
+      .catch(() => { setError(true); setLoading(false); });
+  }, [fullAddress]);
+
+  if (loading) return (
+    <Card style={{ padding: "60px", textAlign: "center" }}>
+      <div style={{ fontSize: "14px", color: "#64748b" }}>地図を読み込み中...</div>
+    </Card>
+  );
+
+  if (error || !geocoded || !MAPS_KEY) return (
+    <Card style={{ padding: "40px", textAlign: "center" }}>
+      <div style={{ fontSize: "14px", color: "#94a3b8" }}>住所情報が不足しているため地図を表示できません</div>
+    </Card>
+  );
+
+  const { lat, lng } = geocoded;
+
+  // Static Maps URL
+  const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=16&size=800x400&markers=color:red%7C${lat},${lng}&key=${MAPS_KEY}&language=ja`;
+
+  // Street View Static URL
+  const streetUrl = `https://maps.googleapis.com/maps/api/streetview?size=800x400&location=${lat},${lng}&fov=90&heading=0&pitch=0&key=${MAPS_KEY}`;
+
+  return (
+    <Card style={{ overflow: "hidden" }}>
+      <div style={{ padding: "16px 22px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
+        <div>
+          <div style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "700", marginBottom: "2px" }}>コニサーチ結果 — LOCATION</div>
+          <div style={{ fontSize: "15px", fontWeight: "700" }}>{fullAddress}</div>
+        </div>
+        <div style={{ display: "flex", gap: "6px" }}>
+          <button onClick={() => setMode("map")} style={{ background: mode === "map" ? accent : "#f8fafc", border: `1.5px solid ${mode === "map" ? accent : "#e2e8f0"}`, borderRadius: "8px", color: mode === "map" ? "#fff" : "#64748b", fontSize: "12px", fontWeight: "700", padding: "6px 14px", cursor: "pointer", fontFamily: "inherit" }}>🗺 地図</button>
+          <button onClick={() => setMode("street")} style={{ background: mode === "street" ? accent : "#f8fafc", border: `1.5px solid ${mode === "street" ? accent : "#e2e8f0"}`, borderRadius: "8px", color: mode === "street" ? "#fff" : "#64748b", fontSize: "12px", fontWeight: "700", padding: "6px 14px", cursor: "pointer", fontFamily: "inherit" }}>📷 ストリートビュー</button>
+        </div>
+      </div>
+      <div style={{ position: "relative" }}>
+        <img
+          src={mode === "map" ? mapUrl : streetUrl}
+          alt={mode === "map" ? "地図" : "ストリートビュー"}
+          style={{ width: "100%", height: "340px", objectFit: "cover", display: "block" }}
+          onError={e => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }}
+        />
+        <div style={{ display: "none", height: "340px", alignItems: "center", justifyContent: "center", background: "#f8fafc" }}>
+          <div style={{ fontSize: "14px", color: "#94a3b8" }}>{mode === "street" ? "この場所のストリートビューはありません" : "地図を表示できません"}</div>
+        </div>
+      </div>
+      <div style={{ padding: "10px 22px", background: "#f8fafc", borderTop: "1px solid #f1f5f9", display: "flex", justifyContent: "flex-end" }}>
+        <a href={`https://www.google.com/maps?q=${lat},${lng}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: "12px", color: accent, fontWeight: "700", textDecoration: "none" }}>Google Mapsで開く →</a>
+      </div>
+    </Card>
+  );
+}
+
 // ---- PERSON SEARCH ----
 function PersonSearch() {
   const [name, setName] = useState("");
@@ -437,24 +514,7 @@ function PersonSearch() {
 
         {/* MAP */}
         {activeTab === "map" && (
-          <Card>
-            <div style={{ padding: "18px 22px", borderBottom: "1px solid #f1f5f9" }}>
-              <div style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "700", marginBottom: "2px" }}>コニサーチ結果 — LOCATION</div>
-              <div style={{ fontSize: "15px", fontWeight: "700" }}>{selectedCandidate.pref} {selectedCandidate.city}</div>
-            </div>
-            <div style={{ height: "280px", background: "#e8f0e8", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden" }}>
-              <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)", backgroundSize: "50px 50px" }} />
-              <div style={{ position: "absolute", top: "42%", left: 0, right: 0, height: "3px", background: "rgba(255,255,255,0.9)" }} />
-              <div style={{ position: "absolute", left: "40%", top: 0, bottom: 0, width: "3px", background: "rgba(255,255,255,0.9)" }} />
-              <div style={{ position: "relative", zIndex: 2, textAlign: "center" }}>
-                <div style={{ width: "16px", height: "16px", borderRadius: "50%", background: "#ef4444", boxShadow: "0 0 0 6px rgba(239,68,68,0.2)", margin: "0 auto 10px" }} />
-                <div style={{ background: "rgba(255,255,255,0.95)", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "7px 16px", fontSize: "13px", fontWeight: "700", color: "#0f172a", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>{selectedCandidate.name} — {selectedCandidate.city}</div>
-              </div>
-            </div>
-            <div style={{ padding: "12px 22px", background: "#f8fafc", borderTop: "1px solid #f1f5f9", fontSize: "12px", color: "#94a3b8" }}>
-              ※ Google Maps Street View APIキーを設定すると実際の地図・ストリートビューを表示できます
-            </div>
-          </Card>
+          <MapView address={address} name={selectedCandidate.name} city={selectedCandidate.city} pref={selectedCandidate.pref} />
         )}
       </div>
     );
