@@ -287,16 +287,7 @@ function PersonSearch() {
         <ResultHeader icon="人" label="個人" name={selectedCandidate.name}
           sub={`${selectedCandidate.pref} › ${selectedCandidate.city}${selectedCandidate.age ? `　${selectedCandidate.age}歳` : ""}`}
           score={selectedCandidate.score} onBack={reset} />
-        {filteredCandidates.length > 1 && (
-          <div style={{ marginBottom: "12px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
-            {filteredCandidates.map((c, i) => (
-              <button key={i} onClick={() => setSelectedCandidate(c)}
-                style={{ background: selectedCandidate === c ? accent : "#fff", border: `1.5px solid ${selectedCandidate === c ? accent : "#e2e8f0"}`, borderRadius: "100px", padding: "6px 14px", fontSize: "12px", fontWeight: "700", color: selectedCandidate === c ? "#fff" : "#64748b", cursor: "pointer", fontFamily: "inherit" }}>
-                {c.pref} {c.city}{c.age ? ` ${c.age}歳` : ""} <span style={{ opacity: 0.7 }}>{c.score}</span>
-              </button>
-            ))}
-          </div>
-        )}
+
         <TabBar tabs={resultTabs} active={activeTab} onChange={setActiveTab} />
 
         {/* SNS */}
