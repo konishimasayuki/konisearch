@@ -138,7 +138,7 @@ function ErrorBanner({ message }) {
 
 // ---- MAP & STREET VIEW ----
 function MapView({ address, name, city, pref }) {
-  const [mode, setMode] = useState("map"); // "map" | "street"
+  const [mode, setMode] = useState("street"); // "map" | "street"
   const [geocoded, setGeocoded] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
